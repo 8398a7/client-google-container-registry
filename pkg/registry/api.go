@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"golang.org/x/xerrors"
 )
 
 type Manifest struct {
@@ -32,21 +34,22 @@ type RegistryError struct {
 func (c *Client) GetImages(ctx context.Context) (*ImageList, error) {
 	token, err := c.getRegistryToken(ctx, "pull", "")
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to get registry token: %w", err)
 	}
 
-	req, err := c.newRequest(ctx, "GET", "/tags/list", nil, token.Token)
+	path := "/tags/list"
+	req, err := c.newRequest(ctx, "GET", path, nil, token.Token)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to generate get images request(%s): %w", path, err)
 	}
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to get images request(%s): %w", path, err)
 	}
 
 	var body ImageList
 	if err := decodeBody(res, &body); err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to decode body: %w", err)
 	}
 	return &body, nil
 }
@@ -54,21 +57,22 @@ func (c *Client) GetImages(ctx context.Context) (*ImageList, error) {
 func (c *Client) GetTags(ctx context.Context, image string) (*ImageList, error) {
 	token, err := c.getRegistryToken(ctx, "pull", image)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to get registry token(%s): %w", image, err)
 	}
 
-	req, err := c.newRequest(ctx, "GET", fmt.Sprintf("/%s/tags/list", image), nil, token.Token)
+	path := fmt.Sprintf("/%s/tags/list", image)
+	req, err := c.newRequest(ctx, "GET", path, nil, token.Token)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to generate get tags request(%s): %w", path, err)
 	}
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to get tags request(%s): %w", path, err)
 	}
 
 	var body ImageList
 	if err := decodeBody(res, &body); err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to decode body: %w", err)
 	}
 	return &body, nil
 }
@@ -76,7 +80,7 @@ func (c *Client) GetTags(ctx context.Context, image string) (*ImageList, error) 
 func (c *Client) DeleteImage(ctx context.Context, image, tag string) (*RegistryError, error) {
 	tags, err := c.GetTags(ctx, image)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to get tags(%s): %w", image, err)
 	}
 	var deleteHashes []string
 	for sha256, manifest := range tags.Manifest {
@@ -90,16 +94,17 @@ func (c *Client) DeleteImage(ctx context.Context, image, tag string) (*RegistryE
 
 	token, err := c.getRegistryToken(ctx, "push,pull", image)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to get registry token(%s): %w", image, err)
 	}
 
-	req, err := c.newRequest(ctx, "DELETE", fmt.Sprintf("/%s/manifests/%s", image, tag), nil, token.Token)
+	path := fmt.Sprintf("/%s/manifests/%s", image, tag)
+	req, err := c.newRequest(ctx, "DELETE", path, nil, token.Token)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to generate delete request(%s): %w", path, err)
 	}
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to delete request(%s): %w", path, err)
 	}
 
 	var body RegistryError
@@ -110,7 +115,7 @@ func (c *Client) DeleteImage(ctx context.Context, image, tag string) (*RegistryE
 	for _, hash := range deleteHashes {
 		res, err := c.DeleteImageWithSha256(ctx, image, hash)
 		if err != nil {
-			return nil, err
+			return nil, xerrors.Errorf("failed to delete image with sha256: %w", err)
 		}
 		if len(res.Errors) > 0 {
 			return res, nil
@@ -123,21 +128,22 @@ func (c *Client) DeleteImage(ctx context.Context, image, tag string) (*RegistryE
 func (c *Client) DeleteImageWithSha256(ctx context.Context, image, hash string) (*RegistryError, error) {
 	token, err := c.getRegistryToken(ctx, "push,pull", image)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to get registry token(%s): %w", image, err)
 	}
 
-	req, err := c.newRequest(ctx, "DELETE", fmt.Sprintf("/%s/manifests/sha256:%s", image, hash), nil, token.Token)
+	path := fmt.Sprintf("/%s/manifests/sha256:%s", image, hash)
+	req, err := c.newRequest(ctx, "DELETE", path, nil, token.Token)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to generate delete request(%s): %w", path, err)
 	}
 	res, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to delete request(%s): %w", path, err)
 	}
 
 	var body RegistryError
 	if err := decodeBody(res, &body); err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to decode body: %w", err)
 	}
 	return &body, nil
 }

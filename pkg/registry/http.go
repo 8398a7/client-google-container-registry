@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"path"
+
+	"golang.org/x/xerrors"
 )
 
 func (c *Client) newRequest(ctx context.Context, method, spath string, body io.Reader, token string) (*http.Request, error) {
@@ -14,7 +16,7 @@ func (c *Client) newRequest(ctx context.Context, method, spath string, body io.R
 
 	req, err := http.NewRequest(method, u.String(), body)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to new request(method: %s, url: %s): %w", method, u.String(), err)
 	}
 
 	req = req.WithContext(ctx)

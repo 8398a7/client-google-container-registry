@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"golang.org/x/xerrors"
 )
 
 type Client struct {
@@ -18,11 +20,12 @@ type Client struct {
 func NewClient(ctx context.Context, host, repo string) (*Client, error) {
 	token, err := getAccessToken(ctx)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to get access token: %w", err)
 	}
-	reqUrl, err := url.ParseRequestURI(fmt.Sprintf("https://%s/v2/%s", host, repo))
+	uri := fmt.Sprintf("https://%s/v2/%s", host, repo)
+	reqUrl, err := url.ParseRequestURI(uri)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to parse request uri(%s): %w", uri, err)
 	}
 
 	client := new(http.Client)
