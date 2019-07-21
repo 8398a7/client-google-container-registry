@@ -3,7 +3,6 @@ package registry
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 )
@@ -11,15 +10,12 @@ import (
 type Client struct {
 	URL        *url.URL
 	HTTPClient *http.Client
-	Logger     *log.Logger
 	token      string
 	host       string
 	repo       string
 }
 
 func NewClient(ctx context.Context, host, repo string) (*Client, error) {
-	logger := new(log.Logger)
-
 	token, err := getAccessToken(ctx)
 	if err != nil {
 		return nil, err
@@ -34,7 +30,6 @@ func NewClient(ctx context.Context, host, repo string) (*Client, error) {
 	return &Client{
 		URL:        reqUrl,
 		HTTPClient: client,
-		Logger:     logger,
 		token:      token,
 		host:       host,
 		repo:       repo,
