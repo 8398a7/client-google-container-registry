@@ -13,7 +13,15 @@ func main() {
 	if err != nil {
 		// error handling
 	}
-	tags, err := client.GetTags(ctx, os.Getenv("IMAGE")))
+	tags, err := client.GetTags(ctx, "image1")
+	if err != nil {
+		// error handling
+	}
+	res, err := client.DeleteImage(ctx, "image", "tag"))
+	if err != nil {
+		// error handling
+	}
+	res, err := client.DeleteImageWithHash(ctx, "image", "hash"))
 	if err != nil {
 		// error handling
 	}
