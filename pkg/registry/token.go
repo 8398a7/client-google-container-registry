@@ -19,12 +19,10 @@ type registryToken struct {
 	Token     string    `json:"token"`
 }
 
-const tokenUrl = "https://gcr.io/v2/token"
-
 func (c *Client) getRegistryToken(ctx context.Context, grant, image string) (*registryToken, error) {
-	u, err := url.ParseRequestURI(tokenUrl)
+	u, err := url.ParseRequestURI(c.getTokenUrl())
 	if err != nil {
-		return nil, xerrors.Errorf("failed to parse request uri(%s): %w", tokenUrl, err)
+		return nil, xerrors.Errorf("failed to parse request uri(%s): %w", c.getTokenUrl(), err)
 	}
 	q := u.Query()
 	if image == "" {
@@ -57,6 +55,10 @@ func (c *Client) getRegistryToken(ctx context.Context, grant, image string) (*re
 	}
 
 	return token, nil
+}
+
+func (c *Client) getTokenUrl() string {
+	return fmt.Sprintf("https://%s/v2/token", c.host)
 }
 
 func getAccessToken(ctx context.Context) (string, error) {
