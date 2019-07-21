@@ -24,7 +24,7 @@ func main() {
 	if err != nil {
 		// error handling
 	}
-	res, err := client.DeleteImageWithHash(ctx, "image1", "hash"))
+	res, err := client.DeleteImageWithHash(ctx, "image1", "sha256:hash"))
 	if err != nil {
 		// error handling
 	}

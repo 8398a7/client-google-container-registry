@@ -3,7 +3,6 @@ package registry
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"golang.org/x/xerrors"
 )
@@ -83,10 +82,9 @@ func (c *Client) DeleteImage(ctx context.Context, image, tag string) (*RegistryE
 		return nil, xerrors.Errorf("failed to get tags(%s): %w", image, err)
 	}
 	var deleteHashes []string
-	for sha256, manifest := range tags.Manifest {
+	for hash, manifest := range tags.Manifest {
 		for _, t := range manifest.Tag {
 			if tag == t {
-				hash := strings.Split(sha256, ":")[1]
 				deleteHashes = append(deleteHashes, hash)
 			}
 		}
@@ -131,7 +129,7 @@ func (c *Client) DeleteImageWithSha256(ctx context.Context, image, hash string) 
 		return nil, xerrors.Errorf("failed to get registry token(%s): %w", image, err)
 	}
 
-	path := fmt.Sprintf("/%s/manifests/sha256:%s", image, hash)
+	path := fmt.Sprintf("/%s/manifests/%s", image, hash)
 	req, err := c.newRequest(ctx, "DELETE", path, nil, token.Token)
 	if err != nil {
 		return nil, xerrors.Errorf("failed to generate delete request(%s): %w", path, err)
