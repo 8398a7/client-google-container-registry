@@ -8,7 +8,7 @@ import (
 	"path"
 )
 
-func (c *Client) newRequest(ctx context.Context, method, spath string, body io.Reader, image string) (*http.Request, error) {
+func (c *Client) newRequest(ctx context.Context, method, spath string, body io.Reader, token string) (*http.Request, error) {
 	u := *c.URL
 	u.Path = path.Join(c.URL.Path, spath)
 
@@ -19,12 +19,7 @@ func (c *Client) newRequest(ctx context.Context, method, spath string, body io.R
 
 	req = req.WithContext(ctx)
 
-	token, err := c.getRegistryToken(ctx, image)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Authorization", "Bearer "+token.Token)
+	req.Header.Add("Authorization", "Bearer "+token)
 
 	return req, nil
 }

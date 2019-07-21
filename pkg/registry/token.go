@@ -17,16 +17,16 @@ type registryToken struct {
 	Token     string    `json:"token"`
 }
 
-func (c *Client) getRegistryToken(ctx context.Context, image string) (*registryToken, error) {
+func (c *Client) getRegistryToken(ctx context.Context, grant, image string) (*registryToken, error) {
 	u, err := url.ParseRequestURI("https://gcr.io/v2/token")
 	if err != nil {
 		return nil, err
 	}
 	q := u.Query()
 	if image == "" {
-		q.Add("scope", fmt.Sprintf("repository:%s:pull", c.repo))
+		q.Add("scope", fmt.Sprintf("repository:%s:%s", c.repo, grant))
 	} else {
-		q.Add("scope", fmt.Sprintf("repository:%s/%s:pull", c.repo, image))
+		q.Add("scope", fmt.Sprintf("repository:%s/%s:%s", c.repo, image, grant))
 	}
 	q.Add("service", c.host)
 	u.RawQuery = q.Encode()

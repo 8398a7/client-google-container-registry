@@ -22,7 +22,12 @@ type ImageList struct {
 }
 
 func (c *Client) GetImages(ctx context.Context) (*ImageList, error) {
-	req, err := c.newRequest(ctx, "GET", "/tags/list", nil, "")
+	token, err := c.getRegistryToken(ctx, "pull", "")
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := c.newRequest(ctx, "GET", "/tags/list", nil, token.Token)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +44,12 @@ func (c *Client) GetImages(ctx context.Context) (*ImageList, error) {
 }
 
 func (c *Client) GetTags(ctx context.Context, image string) (*ImageList, error) {
-	req, err := c.newRequest(ctx, "GET", fmt.Sprintf("/%s/tags/list", image), nil, image)
+	token, err := c.getRegistryToken(ctx, "pull", image)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := c.newRequest(ctx, "GET", fmt.Sprintf("/%s/tags/list", image), nil, token.Token)
 	if err != nil {
 		return nil, err
 	}
