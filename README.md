@@ -1,14 +1,16 @@
 # client-google-container-registry
 
-This library is dependent on gcloud sdk.  
-This is because `gcloud auth print-access-token` is internally executed to access GCR.
-
 ## Usage
+
+```bash
+# require `roles/storage.admin` role
+export GOOGLE_APPLICATION_CREDENTIALS=service-account.json
+```
 
 ```go
 func main() {
 	ctx := context.Background()
-	client, err := registry.NewClient(ctx, "gcr.io", "your-gcp-project-id")
+	client, err := registry.NewClient("gcr.io", "your-gcp-project-id")
 	if err != nil {
 		// error handling
 	}

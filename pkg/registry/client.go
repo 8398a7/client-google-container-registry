@@ -1,10 +1,10 @@
 package registry
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 
 	"golang.org/x/xerrors"
 )
@@ -17,8 +17,13 @@ type Client struct {
 	repo       string
 }
 
-func NewClient(ctx context.Context, host, repo string) (*Client, error) {
-	token, err := getAccessToken(ctx)
+func NewClient(host, repo string) (*Client, error) {
+	keyFile := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	if keyFile == "" {
+		return nil, xerrors.New("GOOGLE_APPLICATION_CREDENTIALS is not specified.")
+	}
+
+	token, err := generateJWT(keyFile)
 	if err != nil {
 		return nil, xerrors.Errorf("failed to get access token: %w", err)
 	}

@@ -2,16 +2,25 @@ package registry
 
 import (
 	"context"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os/exec"
 	"strings"
 	"time"
 
+	"golang.org/x/oauth2/google"
+	"golang.org/x/oauth2/jws"
 	"golang.org/x/xerrors"
 )
+
+const audience = "https://www.googleapis.com/oauth2/v4/token"
+const scope = "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/cloud-platform"
+const grantType = "urn:ietf:params:oauth:grant-type:jwt-bearer"
 
 type registryToken struct {
 	ExpiresIn float32   `json:"expires_in"`
@@ -61,10 +70,71 @@ func (c *Client) getTokenUrl() string {
 	return fmt.Sprintf("https://%s/v2/token", c.host)
 }
 
-func getAccessToken(ctx context.Context) (string, error) {
-	out, err := exec.Command("gcloud", "auth", "print-access-token").Output()
+func generateJWT(saKeyfile string) (string, error) {
+	sa, err := ioutil.ReadFile(saKeyfile)
 	if err != nil {
-		return "", xerrors.Errorf("failed to execute `gcloud auth print-access-token`: %w", err)
+		return "", xerrors.Errorf("Could not read service account file: %w", err)
 	}
-	return strings.TrimSpace(string(out)), nil
+	conf, err := google.JWTConfigFromJSON(sa)
+	if err != nil {
+		return "", xerrors.Errorf("Could not parse service account JSON: %w", err)
+	}
+	block, _ := pem.Decode(conf.PrivateKey)
+	parsedKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return "", xerrors.Errorf("private key parse error: %w", err)
+	}
+	rsaKey, ok := parsedKey.(*rsa.PrivateKey)
+	if !ok {
+		return "", xerrors.New("private key failed rsa.PrivateKey type assertion")
+	}
+	now := time.Now().Unix()
+
+	jwt := &jws.ClaimSet{
+		Iat:   now,
+		Exp:   now + 3600,
+		Iss:   conf.Email,
+		Aud:   audience,
+		Scope: scope,
+	}
+	jwsHeader := &jws.Header{
+		Algorithm: "RS256",
+		Typ:       "JWT",
+	}
+	token, err := jws.Encode(jwsHeader, jwt, rsaKey)
+	if err != nil {
+		return "", xerrors.Errorf("failed to encode jws: %w", err)
+	}
+
+	return generateAccessToken(token)
+}
+
+func generateAccessToken(token string) (string, error) {
+	client := new(http.Client)
+
+	values := url.Values{}
+	values.Add("grant_type", grantType)
+	values.Add("assertion", token)
+
+	req, err := http.NewRequest("POST", audience, strings.NewReader(values.Encode()))
+	if err != nil {
+		return "", xerrors.Errorf("failed to generate http request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", xerrors.Errorf("failed to request token: %w", err)
+	}
+
+	var body struct {
+		AccessToken string `json:"access_token"`
+	}
+
+	if err := decodeBody(resp, &body); err != nil {
+		return "", xerrors.Errorf("failed to decode body: %w", err)
+	}
+
+	return body.AccessToken, nil
 }
