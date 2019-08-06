@@ -30,5 +30,9 @@ func main() {
 	if err != nil {
 		// error handling
 	}
+	res, err := client.UnTag(ctx, "image1", "tag"))
+	if err != nil {
+		// error handling
+	}
 }
 ```
