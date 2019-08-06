@@ -145,3 +145,26 @@ func (c *Client) DeleteImageWithSha256(ctx context.Context, image, hash string) 
 	}
 	return &body, nil
 }
+
+func (c *Client) UnTag(ctx context.Context, image, tag string) (*RegistryError, error) {
+	token, err := c.getRegistryToken(ctx, "push,pull", image)
+	if err != nil {
+		return nil, xerrors.Errorf("failed to get registry token(%s): %w", image, err)
+	}
+
+	path := fmt.Sprintf("/%s/manifests/%s", image, tag)
+	req, err := c.newRequest(ctx, "DELETE", path, nil, token.Token)
+	if err != nil {
+		return nil, xerrors.Errorf("failed to generate delete request(%s): %w", path, err)
+	}
+	res, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, xerrors.Errorf("failed to delete request(%s): %w", path, err)
+	}
+
+	var body RegistryError
+	if err := decodeBody(res, &body); err != nil {
+		return nil, xerrors.Errorf("failed to decode body: %w", err)
+	}
+	return &body, nil
+}
