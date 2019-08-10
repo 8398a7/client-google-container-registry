@@ -17,8 +17,10 @@ type Client struct {
 	repo       string
 }
 
-func NewClient(host, repo string) (*Client, error) {
-	keyFile := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+func NewClient(host, repo, keyFile string) (*Client, error) {
+	if keyFile == "" {
+		keyFile = os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	}
 	if keyFile == "" {
 		return nil, xerrors.New("GOOGLE_APPLICATION_CREDENTIALS is not specified.")
 	}
